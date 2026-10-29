@@ -3,9 +3,10 @@
 
 The nightly workflow calls this with the version and SHA-256 of the
 libxray-apple-cgo.zip asset from the latest XTLS/libXray release. It changes
-exactly two things: the download URL and the checksum line. Anything else it
-cannot find, or an odd-shaped input, makes it exit nonzero so the run fails
-loudly instead of committing garbage.
+exactly two things: the download URL and the checksum line. When the manifest
+already names that release (first run, or a retrigger), it exits silently
+successful; a lost or mis-shaped line, or an odd version string, exits
+nonzero so the run fails loudly instead of committing garbage.
 """
 
 import argparse
@@ -63,7 +64,7 @@ def main() -> int:
         print("Package.swift: updated to {0}".format(args.version))
         return 0
     print("Package.swift: already up to date")
-    return 1
+    return 0
 
 
 if __name__ == "__main__":
