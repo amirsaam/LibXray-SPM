@@ -110,5 +110,5 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: "v${{ needs.update.outputs.version }}"
-      - name: Build the package as a consumer would
-        run: swift build
+      - name: Build and test the package as a consumer would
+        run: swift test

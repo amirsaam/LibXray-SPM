@@ -1,0 +1,221 @@
+import XCTest
+@testable import XrayKit
+
+// The one-call path: a whole working document from intent, verified live.
+
+final class AssemblyTests: XCTestCase {
+    private let link = "vless://12345678-abcd-abcd-abcd-123456789abc@example.com:443?type=tcp&security=tls&encryption=none&sni=example.com#Bridge"
+
+    func testFullAssemblyFromShareLink() throws {
+        let session = Xray.Session()
+        let config = try Xray.Assembly(
+            source: .shareLinks(link),
+            remarks: "demo",
+            routing: Xray.Routing(
+                domainStrategy: .ipIfNonMatch,
+                rules: [
+                    .init(inboundTags: ["dns-in"], destination: .dns),
+                    .init(domains: ["malware.example.com"], destination: .block),
+                    .init(ips: ["10.0.0.0/8"], destination: .direct),
+                ],
+                final: .proxy
+            ),
+            dns: Xray.DNS(
+                hosts: ["blocked.example.com": "127.0.0.1"],
+                queryStrategy: .useIPv4,
+                servers: [.detailed(address: "fakedns", domains: ["example.com"])]
+            ),
+            fakeDNS: [Xray.FakeDNS(ipPool: "198.18.0.0/16", poolSize: 512)],
+            log: Xray.Log(level: .warning, dnsLog: true)
+        ).assemble()
+        let value = try JSONDecoder().decode(Xray.JSONValue.self, from: Data(config.json.utf8))
+
+        // The converted proxy keeps its tag; destinations resolve to it.
+        XCTAssertEqual(value["outbounds"]?[0]?["tag"], .string("Bridge"))
+        XCTAssertEqual(value["routing"]?["final"], .string("Bridge"))
+        // Referenced standards appear exactly once, with the right protocols.
+        XCTAssertEqual(value["outbounds"]?.arrayValue?.first(where: { $0["tag"] == .string("direct") })?["protocol"], .string("freedom"))
+        XCTAssertEqual(value["outbounds"]?.arrayValue?.first(where: { $0["tag"] == .string("block") })?["protocol"], .string("blackhole"))
+        XCTAssertEqual(value["outbounds"]?.arrayValue?.first(where: { $0["tag"] == .string("dns-out") })?["protocol"], .string("dns"))
+        XCTAssertEqual(value["routing"]?["rules"]?[0]?["outboundTag"], .string("dns-out"))
+        // Entries arrive with tags the rules reference.
+        XCTAssertEqual(value["inbounds"]?[0]?["tag"], .string("socks-in"))
+        XCTAssertEqual(value["inbounds"]?[0]?["sniffing"]?["enabled"], .bool(true))
+        XCTAssertEqual(value["inbounds"]?[1]?["tag"], .string("dns-in"))
+        XCTAssertEqual(value["inbounds"]?[1]?["protocol"], .string("dokodemo-door"))
+        // Typed sections land verbatim.
+        XCTAssertEqual(value["dns"]?["queryStrategy"], .string("UseIPv4"))
+        XCTAssertEqual(value["log"]?["loglevel"], .string("warning"))
+        XCTAssertEqual(value["remarks"], .string("demo"))
+
+        try config.validate()
+        try session.start(config)
+        XCTAssertTrue(try session.isRunning())
+        try session.stop()
+    }
+
+    func testProxyConfigurationFactory() throws {
+        let config = try Xray.shared.proxyConfiguration(
+            .shareLinks(link),
+            remarks: "factory",
+            socksPort: 10880,
+            routing: Xray.Routing(final: .proxy)
+        )
+        let value = try JSONDecoder().decode(Xray.JSONValue.self, from: Data(config.json.utf8))
+
+        XCTAssertEqual(value["inbounds"]?[0]?["tag"], .string("socks-in"))
+        XCTAssertEqual(value["inbounds"]?[0]?["port"], .int(10880))
+        XCTAssertNil(value["inbounds"]?.arrayValue?.first(where: { $0["tag"] == .string("http-in") }))
+        XCTAssertEqual(value["remarks"], .string("factory"))
+
+        try config.validate()
+    }
+
+    func testProxyConfigurationWithoutSocks() throws {
+        let config = try Xray.shared.proxyConfiguration(.shareLinks(link), socksPort: nil)
+        let value = try JSONDecoder().decode(Xray.JSONValue.self, from: Data(config.json.utf8))
+        XCTAssertNil(value["inbounds"]?.arrayValue?.first(where: { $0["tag"] == .string("socks-in") }))
+    }
+
+    func testDefaultsCanBeDropped() throws {
+        let config = try Xray.Assembly(
+            source: .shareLinks(link),
+            socks: nil,
+            dnsRelay: nil
+        ).assemble()
+        let value = try JSONDecoder().decode(Xray.JSONValue.self, from: Data(config.json.utf8))
+        XCTAssertNil(value["inbounds"])
+        XCTAssertEqual(value["outbounds"]?[0]?["tag"], .string("Bridge"))
+    }
+
+    func testPatchRunsLast() throws {
+        let config = try Xray.Assembly(
+            source: .shareLinks(link),
+            patch: { $0["remarks"] = .string("patched") }
+        ).assemble()
+        let value = try JSONDecoder().decode(Xray.JSONValue.self, from: Data(config.json.utf8))
+        XCTAssertEqual(value["remarks"], .string("patched"))
+        XCTAssertEqual(value["inbounds"]?[0]?["tag"], .string("socks-in"))
+    }
+
+    func testSocksEntryAuthStartsLive() throws {
+        let session = Xray.Session()
+        let config = try Xray.Assembly(
+            source: .shareLinks(link),
+            socks: Xray.Assembly.SocksEntry(
+                port: 18081,
+                auth: Xray.Credentials(username: "proxy-user", password: "s3cret")
+            ),
+            dnsRelay: nil
+        ).assemble()
+        let value = try JSONDecoder().decode(Xray.JSONValue.self, from: Data(config.json.utf8))
+        XCTAssertEqual(value["inbounds"]?[0]?["settings"]?["auth"], .string("password"))
+        XCTAssertEqual(value["inbounds"]?[0]?["settings"]?["users"]?[0]?["user"], .string("proxy-user"))
+        try config.validate()
+        try session.start(config)
+        XCTAssertTrue(try session.isRunning())
+        try session.stop()
+    }
+
+    func testHttpEntryWithAuthStartsLive() throws {
+        let session = Xray.Session()
+        let config = try Xray.Assembly(
+            source: .shareLinks(link),
+            socks: nil,
+            http: Xray.Assembly.HttpEntry(
+                port: 18082,
+                auth: Xray.Credentials(username: "web-user", password: "s3cret")
+            ),
+            dnsRelay: nil
+        ).assemble()
+        let value = try JSONDecoder().decode(Xray.JSONValue.self, from: Data(config.json.utf8))
+        XCTAssertEqual(value["inbounds"]?[0]?["protocol"], .string("http"))
+        XCTAssertEqual(
+            value["inbounds"]?[0]?["settings"]?["accounts"]?[0]?["user"],
+            .string("web-user")
+        )
+        try config.validate()
+        try session.start(config)
+        XCTAssertTrue(try session.isRunning())
+        try session.stop()
+    }
+
+    func testTunAssemblyValidatesLive() throws {
+        let config = try Xray.Assembly(
+            source: .shareLinks(link),
+            socks: nil,
+            dnsRelay: nil,
+            tun: Xray.TunEntry(
+                gateway: ["198.18.0.1/15"],
+                autoSystemRoutingTable: ["0.0.0.0/0"],
+                autoOutboundsInterface: "auto"
+            )
+        ).assemble()
+        let value = try JSONDecoder().decode(Xray.JSONValue.self, from: Data(config.json.utf8))
+        XCTAssertEqual(value["inbounds"]?[0]?["tag"], .string("tunIn"))
+        XCTAssertEqual(value["inbounds"]?[0]?["protocol"], .string("tun"))
+        // No descriptor in tests: no env key, and the engine still
+        // resolves the tun inbound (validate builds the full instance).
+        XCTAssertNil(value["env"])
+        try config.validate()
+    }
+
+    func testOutboundsOnlyJSONSource() throws {
+        let session = Xray.Session()
+        let outboundsOnly = """
+        {"outbounds":[{
+            "tag":"proxy0","protocol":"vless",
+            "settings":{"address":"example.com","port":443,
+                        "id":"12345678-abcd-abcd-abcd-123456789abc",
+                        "encryption":"none"},
+            "streamSettings":{"network":"raw","security":"tls",
+                              "tlsSettings":{"serverName":"example.com"}}
+        }]}
+        """
+        let config = try Xray.Assembly(
+            source: .json(outboundsOnly),
+            socks: Xray.Assembly.SocksEntry(port: 18084),
+            dnsRelay: nil,
+            routing: Xray.Routing(
+                rules: [.init(domains: ["example.com"], destination: .direct)],
+                final: .proxy
+            )
+        ).assemble()
+        let value = try JSONDecoder().decode(Xray.JSONValue.self, from: Data(config.json.utf8))
+        // The provided outbound survives with its tag; destinations resolve.
+        XCTAssertEqual(value["outbounds"]?[0]?["tag"], .string("proxy0"))
+        XCTAssertEqual(value["routing"]?["final"], .string("proxy0"))
+        XCTAssertTrue((value["outbounds"]?.arrayValue?.compactMap { $0["tag"]?.stringValue } ?? []).contains("direct"))
+        XCTAssertEqual(value["inbounds"]?[0]?["tag"], .string("socks-in"))
+        try config.validate()
+        try session.start(config)
+        XCTAssertTrue(try session.isRunning())
+        try session.stop()
+    }
+
+    func testObservatorySectionIsWritten() throws {
+        let session = Xray.Session()
+        let config = try Xray.Assembly(
+            source: .shareLinks(link),
+            observatory: Xray.Observatory(
+                subjectSelector: ["fast"],
+                probeURL: "https://example.com/generate_204",
+                probeInterval: "30s",
+                enableConcurrency: true
+            ),
+            metricsPort: 10085
+        ).assemble()
+        let value = try JSONDecoder().decode(Xray.JSONValue.self, from: Data(config.json.utf8))
+        XCTAssertEqual(value["observatory"]?["subjectSelector"], .array([.string("fast")]))
+        XCTAssertEqual(value["observatory"]?["probeURL"], .string("https://example.com/generate_204"))
+        XCTAssertEqual(value["observatory"]?["probeInterval"], .string("30s"))
+        XCTAssertEqual(value["observatory"]?["enableConcurrency"], .bool(true))
+        // Observatory results surface through the Metrics endpoint, so the
+        // assembly keeps the two sections consistent for you.
+        XCTAssertNotNil(value["metrics"])
+        try config.validate()
+        try session.start(config)
+        XCTAssertTrue(try session.isRunning())
+        try session.stop()
+    }
+}

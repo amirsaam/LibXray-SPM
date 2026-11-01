@@ -1,0 +1,21 @@
+name: CI
+
+# Every push and pull request builds the package and runs the full suite on
+# macOS. The nightly engine-bump workflow has its own post-update check; this
+# one guards the Swift code itself.
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-and-test:
+    name: Build and test
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: swift build
+
+      - name: Test
+        run: swift test
