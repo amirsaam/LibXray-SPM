@@ -1,5 +1,5 @@
 import XCTest
-@testable import XrayKit
+@testable import CoreXray
 
 // Provider-side flows: liveness, fd handoff, start deadlines, asset upkeep,
 // and the assembly-time guards that keep a bad document from ever launching.
@@ -15,7 +15,7 @@ final class ProviderFlowTests: XCTestCase {
     override func setUp() {
         super.setUp()
         tempDir = FileManager.default.temporaryDirectory
-            .appendingPathComponent("XrayKitProviderFlowTests")
+            .appendingPathComponent("CoreXrayProviderFlowTests")
             .appendingPathComponent(UUID().uuidString)
     }
 

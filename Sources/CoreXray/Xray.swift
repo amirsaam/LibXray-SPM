@@ -1,7 +1,7 @@
 import Foundation
 
 // Re-exports the bundled binary target, so advanced users can call the raw
-// `CGoInvoke` / `CGoFree` C entry points with a single `import XrayKit`. The
+// `CGoInvoke` / `CGoFree` C entry points with a single `import CoreXray`. The
 // typed API funnels all engine traffic through `Calls/EngineTransport`.
 
 @_exported import LibXray

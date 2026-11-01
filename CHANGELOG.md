@@ -40,7 +40,7 @@ git log and the `v<date>` release tags.
 - `Assembly` is no longer `Sendable`: its `patch` closure runs exactly
   once on the assembling thread, so conforming only taxed user code.
 - Feed `timeoutSeconds` defaults to 30s and is configurable.
-- `Sources/LibXraySwift` is now `Sources/XrayKit` (module `XrayKit`
+- `Sources/LibXraySwift` is now `Sources/CoreXray` (module `CoreXray`
   throughout). Update target references, not imports.
 
 ### Fixed

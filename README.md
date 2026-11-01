@@ -12,7 +12,7 @@ tvOS clients. That is exactly what this package gives you, in two layers:
   updated by a nightly job. SwiftPM downloads the zip per version, verifies
   the hash, unpacks `LibXray.xcframework`, and caches it, so this repository
   itself stores no binaries.
-- `XrayKit`, a Swift module over the engine's single JSON entry point.
+- `CoreXray`, a Swift module over the engine's single JSON entry point.
   `Xray.Assembly` turns intent into a launchable document, `Xray.Session`
   owns launch lifecycles, `Xray.Config` is the configuration value, and
   `Xray` answers one-shot questions.
@@ -84,7 +84,7 @@ deliberately and with the download cost in mind.
 ## Importing
 
 ```swift
-import XrayKit
+import CoreXray
 ```
 
 The import exposes everything: the `Xray` namespace, `Xray.Session`,
@@ -101,7 +101,7 @@ servers, and picking free ports. The engine keeps no session history you can
 read back; your app owns the lifecycle.
 
 ```swift
-import XrayKit
+import CoreXray
 
 // 1. Hold a session for as long as its engine should live
 let session = Xray.shared.newSession(logger: { print("[xray]", $0) })
@@ -124,7 +124,7 @@ try session.stop()
 
 ## API reference
 
-Everything below is reachable after `import XrayKit`. Values are built through
+Everything below is reachable after `import CoreXray`. Values are built through
 factories on `Xray.shared` — value inits are internal, so user code passes
 values to functions and never spells a type name to construct one. Blocking
 calls expect a
@@ -887,7 +887,7 @@ you want the newest engine before the next midnight.
 
 - **"unsupported apiVersion"** — XTLS/libXray bumped its bridge protocol. The
   constant to update is `protocolVersion` inside
-  `Sources/XrayKit/Calls/EngineTransport.swift`,
+  `Sources/CoreXray/Calls/EngineTransport.swift`,
   taken from the `LibXrayAPIVersion` in upstream `invoke_model.go` (and please
   open an issue so the next daily version also carries the fix).
 - **"no valid outbound found"** — the engine declined every entry you passed.
@@ -895,8 +895,8 @@ you want the newest engine before the next midnight.
   without scheme defaults will not build. Validate with `validate()` for
   detail on a JSON config.
 - **linker failures mentioning `Sec*` or `res_9_*` symbols** — your app built
-  against the binary target directly instead of going through `XrayKit`.
-  Depend on the `XrayKit` product, which owns the framework and library
+  against the binary target directly instead of going through `CoreXray`.
+  Depend on the `CoreXray` product, which owns the framework and library
   linkage.
 - **Package resolution hangs or fails on "unsupported platform"** — the
   framework has no watchOS/visionOS slices, so those destinations cannot use
@@ -939,7 +939,7 @@ gives you the three primitives; the app owns the loop:
 
 ```
 Package.swift                the only per-release change: binary target URL and checksum
-Sources/XrayKit/             typed API over the C bridge
+Sources/CoreXray/             typed API over the C bridge
   Xray.swift                 entry only: the shared instance
   Kit/                       human-facing API, extensions of Xray, one type per file
     Lifecycle.swift          version, isRunning, health, launch, stop, sendRawRequest
@@ -975,7 +975,7 @@ Sources/XrayKit/             typed API over the C bridge
     ConfigCalls.swift        link conversion, validation, subscription unwrap
     KeyCalls.swift           age key generation
     GeoCalls.swift           geo inventory encoding
-Tests/XrayKitTests/          engine, session, and downloader tests (HTTPStub
+Tests/CoreXrayTests/          engine, session, and downloader tests (HTTPStub
                              keeps downloads and feeds hermetic: no packets)
 scripts/update_package.py    manifest rewriter used by the nightly job
 .github/workflows/update-libxray.yml    the nightly job (tests the new tag)
@@ -997,7 +997,7 @@ cleanup. Proxy mode, app process, background task — `start` blocks until the
 engine is up, so it never runs on the main thread.
 
 ```swift
-import XrayKit
+import CoreXray
 
 final class ProxyService: NSObject {
     static let shared = ProxyService()

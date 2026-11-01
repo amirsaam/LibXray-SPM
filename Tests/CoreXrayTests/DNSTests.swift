@@ -1,5 +1,5 @@
 import XCTest
-@testable import XrayKit
+@testable import CoreXray
 
 final class DNSTests: XCTestCase {
     private let minimalJSON = #"{"inbounds":[],"outbounds":[]}"#

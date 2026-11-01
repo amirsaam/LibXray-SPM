@@ -1,6 +1,6 @@
 import Darwin
 import XCTest
-@testable import XrayKit
+@testable import CoreXray
 
 // Metrics-over-HTTP: the assembly writes the metrics/stats/policy sections,
 // the monitor parses /debug/vars, deltas turn snapshots into speed.

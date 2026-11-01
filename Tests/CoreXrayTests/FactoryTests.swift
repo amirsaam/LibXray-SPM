@@ -1,5 +1,5 @@
 import XCTest
-@testable import XrayKit
+@testable import CoreXray
 
 // Every user-constructed value has a factory twin on the shared instance.
 // These tests pin the twins: same defaults as the inits, validation where

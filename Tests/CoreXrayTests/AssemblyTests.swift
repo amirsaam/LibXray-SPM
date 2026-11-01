@@ -1,5 +1,5 @@
 import XCTest
-@testable import XrayKit
+@testable import CoreXray
 
 // The one-call path: a whole working document from intent, verified live.
 

@@ -15,7 +15,7 @@ let package = Package(
         .tvOS(.v17)
     ],
     products: [
-        .library(name: "XrayKit", targets: ["XrayKit"])
+        .library(name: "CoreXray", targets: ["CoreXray"])
     ],
     targets: [
         .binaryTarget(
@@ -24,7 +24,7 @@ let package = Package(
             checksum: "4e788ea0068939132373e3d899342630e8de763ed08042e0a0bef5202f4ccaf2"
         ),
         .target(
-            name: "XrayKit",
+            name: "CoreXray",
             dependencies: ["LibXray"],
             linkerSettings: [
                 .linkedFramework("Security"),
@@ -32,8 +32,8 @@ let package = Package(
             ]
         ),
         .testTarget(
-            name: "XrayKitTests",
-            dependencies: ["XrayKit"]
+            name: "CoreXrayTests",
+            dependencies: ["CoreXray"]
         )
     ]
 )

@@ -25,7 +25,7 @@ internal final class EngineTransport {
     /// interleave inside `CGoInvoke`, and callers need no locking of their
     /// own. Do not call back into the engine from `transform` or `logger`
     /// closures.
-    private static let lane = DispatchQueue(label: "XrayKit.engine", qos: .userInitiated)
+    private static let lane = DispatchQueue(label: "CoreXray.engine", qos: .userInitiated)
 
     internal static func guardRequestSize(_ request: String) throws {
         let bytes = request.utf8.count

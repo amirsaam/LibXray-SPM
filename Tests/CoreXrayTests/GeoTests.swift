@@ -1,5 +1,5 @@
 import XCTest
-@testable import XrayKit
+@testable import CoreXray
 
 // Downloader logic against an in-process HTTP stub: no packets, no
 // multi-megabyte fixtures. Mirrors the failure modes that matter (bad
@@ -11,7 +11,7 @@ final class GeoTests: XCTestCase {
     override func setUp() {
         super.setUp()
         tempDir = FileManager.default.temporaryDirectory
-            .appendingPathComponent("XrayKitGeoTests")
+            .appendingPathComponent("CoreXrayGeoTests")
             .appendingPathComponent(UUID().uuidString)
     }
 

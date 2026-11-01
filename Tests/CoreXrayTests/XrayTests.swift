@@ -1,5 +1,5 @@
 import XCTest
-@testable import XrayKit
+@testable import CoreXray
 
 // Live-engine queries: version, idle state, ports, conversion. These download
 // the versioned binary artifact once, then run against it like any consumer.

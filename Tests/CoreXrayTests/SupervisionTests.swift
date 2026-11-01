@@ -1,5 +1,5 @@
 import XCTest
-@testable import XrayKit
+@testable import CoreXray
 
 // Supervision: flight recorder, uptime stamp, engine log tailing, stall
 // watchdog, provider preflight, one-call remote start, and the mockable
@@ -13,7 +13,7 @@ final class SupervisionTests: XCTestCase {
     override func setUp() {
         super.setUp()
         tempDir = FileManager.default.temporaryDirectory
-            .appendingPathComponent("XrayKitSupervisionTests")
+            .appendingPathComponent("CoreXraySupervisionTests")
             .appendingPathComponent(UUID().uuidString)
     }
 

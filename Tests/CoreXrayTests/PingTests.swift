@@ -1,5 +1,5 @@
 import XCTest
-@testable import XrayKit
+@testable import CoreXray
 
 // Client-side guards for the engine's ping contract: at most five targets,
 // positive timeout, absolute HTTP(S) URL, engine stopped, optional tag.

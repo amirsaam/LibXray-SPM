@@ -1,5 +1,5 @@
 import XCTest
-@testable import XrayKit
+@testable import CoreXray
 
 // Session assembly without launching: sniffing injection, transforms,
 // dry-runs, logging. No engine contact except share-link conversion.

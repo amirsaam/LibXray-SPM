@@ -1,5 +1,5 @@
 import XCTest
-@testable import XrayKit
+@testable import CoreXray
 
 // The typed JSON tree: literals, subscripts, dynamic members, and a Codable
 // round trip that preserves ints as ints.
