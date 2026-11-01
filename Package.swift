@@ -8,7 +8,7 @@ import PackageDescription
 // from it, and caches the result per checksum, so both lines must always
 // describe the same release.
 let package = Package(
-    name: "LibXray-SPM",
+    name: "CoreXray-Swift",
     platforms: [
         .iOS(.v15),
         .macOS(.v13),

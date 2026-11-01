@@ -1,4 +1,4 @@
-name: Update LibXray
+name: Update engine
 
 # Runs at midnight UTC every day. When XTLS/libXray publishes a release this
 # repo has not packaged yet, the job hashes upstream's libxray-apple-cgo.zip
@@ -16,7 +16,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: libxray-update
+  group: corexray-engine-update
   cancel-in-progress: false
 
 jobs:
@@ -81,7 +81,7 @@ jobs:
           CHECKSUM: ${{ steps.asset.outputs.checksum }}
         run: |
           set -euo pipefail
-          git config user.name "libxray-updater"
+          git config user.name "corexray-updater"
           git config user.email "actions@users.noreply.github.com"
           if git diff --quiet -- Package.swift && git diff --cached --quiet -- Package.swift; then
             # The manifest already names this release (first run, or a
@@ -95,11 +95,17 @@ jobs:
           git tag "v${VERSION}"
           git push origin "v${VERSION}"
           gh release create "v${VERSION}" \
-            --title "v${VERSION}" \
+            --title "CoreXray-Swift v${VERSION}" \
             --target "$(git rev-parse HEAD)" \
-            --notes "Packaged from [XTLS/libXray v${VERSION}](https://github.com/XTLS/libXray/releases/tag/v${VERSION}).
+            --notes "Swift packaging of upstream [XTLS/libXray v${VERSION}](https://github.com/XTLS/libXray/releases/tag/v${VERSION}).
 
-          \`Package.swift\` in this tag points at upstream's \`libxray-apple-cgo.zip\` (SHA-256: ${CHECKSUM}). SwiftPM downloads the asset, verifies it against that checksum, unpacks LibXray.xcframework, and caches it, so the framework itself is never stored on this repo."
+            What this is: the CoreXray Swift module over libXray's C bridge — typed sessions, configs, routing/DNS/TUN sections, geo assets, traffic, and ping — plus the LibXray.xcframework it runs against.
+
+            How the binary gets here: \`Package.swift\` in this tag points at upstream's \`libxray-apple-cgo.zip\` (SHA-256: ${CHECKSUM}). SwiftPM downloads that asset, verifies it against the checksum, unpacks LibXray.xcframework, and caches it, so the framework itself is never stored in this repo.
+
+            Use it with an exact pin — tags mirror upstream versions and there are no deprecation shims between them:
+
+                .package(url: \"https://github.com/amirsaam/CoreXray-Swift.git\", .exact(\"${VERSION}\"))"
 
   verify:
     name: Swift build check

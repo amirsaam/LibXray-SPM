@@ -1,4 +1,4 @@
-# LibXray-SPM
+# CoreXray-Swift
 
 libXray as a Swift Package: `Package.swift` points directly at the
 `libxray-apple-cgo.zip` asset of every [XTLS/libXray release](https://github.com/XTLS/libXray/releases),
@@ -45,14 +45,14 @@ framework without another download.
 Xcode: File > Add Package Dependencies, and enter
 
 ```
-https://github.com/amirsaam/LibXray-SPM.git
+https://github.com/amirsaam/CoreXray-Swift.git
 ```
 
 In `Package.swift`:
 
 ```swift
 .package(
-    url: "https://github.com/amirsaam/LibXray-SPM.git",
+    url: "https://github.com/amirsaam/CoreXray-Swift.git",
     .exact("26.10.29")
 )
 ```
