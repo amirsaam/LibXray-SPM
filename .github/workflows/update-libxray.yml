@@ -28,6 +28,11 @@ jobs:
       changed: ${{ steps.check.outputs.changed }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Tags must be present locally: the "already packaged?" check below
+          # reads the tag list, and a tagless clone re-cuts every release
+          # (HTTP 422) nightly.
+          fetch-tags: true
 
       - name: Find the latest upstream release
         id: check
@@ -92,9 +97,12 @@ jobs:
             git commit -m "v${VERSION}: package XTLS/libXray v${VERSION}"
             git push origin HEAD
           fi
-          git tag "v${VERSION}"
+          git tag "v${VERSION}" 2>/dev/null || echo "Tag v${VERSION} already exists locally."
           git push origin "v${VERSION}"
-          gh release create "v${VERSION}" \
+          if gh release view "v${VERSION}" >/dev/null 2>&1; then
+            echo "Release v${VERSION} already exists; leaving it alone."
+          else
+            gh release create "v${VERSION}" \
             --title "CoreXray-Swift v${VERSION}" \
             --target "$(git rev-parse HEAD)" \
             --notes "Swift packaging of upstream [XTLS/libXray v${VERSION}](https://github.com/XTLS/libXray/releases/tag/v${VERSION}).
@@ -106,6 +114,7 @@ jobs:
             Use it with an exact pin — tags mirror upstream versions and there are no deprecation shims between them:
 
                 .package(url: \"https://github.com/amirsaam/CoreXray-Swift.git\", .exact(\"${VERSION}\"))"
+          fi
 
   verify:
     name: Swift build check
